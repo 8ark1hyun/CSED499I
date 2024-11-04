@@ -89,7 +89,7 @@ async def leader_follower_run():
                 break
             await asyncio.sleep(1)
 
-            if time.time() - last_follower_update > followe_interval:
+            if time.time() - last_follower_update > follow_interval:
                 async for position in leader.telemetry.position():
                     await follower.action.goto_location(
                         position.latitude_deg,
