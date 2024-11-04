@@ -3,28 +3,37 @@ from mavsdk import System
 from mavsdk.mission import MissionItem, MissionPlan
 import math
 
-async def log_data(drone):
+async def log_data(drone, label):
     # Collect and Print the Log in real-time
     async for position in drone.telemetry.position():
-        print(f"Current Location: latitude {position.latitude_deg},\tlongitude {position.longitude_deg},\taltitude: {position.relative_altitude_m}")
+        print(f"[{label}] Current Location: latitude {position.latitude_deg},\tlongitude {position.longitude_deg},\taltitude: {position.relative_altitude_m}")
 
 async def run():
-    # Initialize and Connect the Drone System
-    drone = System()
-    await drone.connect(system_address="udp://:14540")
+    # Initialize and Connect the Drone Systems
+    leader = System()
+    follower = System()
 
-    print("Connecting...")
-    async for state in drone.core.connection_state():
+    await leader.connect(system_address="udp://:14540")
+    await follower.connect(system_address="udp://:14541")
+
+    print("Connecting Leader...")
+    async for state in leader.core.connection_state():
         if state.is_connected:
-            print("Connected!")
+            print("Leader Connected!")
             break
 
-    # Load the Current Location
-    print("\nLoading the current location...")
-    async for position in drone.telemetry.position():
+    print("Connecting Follower...")
+    async for state in follower.core.connection_state():
+        if state.is_connected:
+            print("Follower Connected!")
+            break
+            
+    # Load the Original Location of Leader
+    print("\nLoading the Original Location of Leader...")
+    async for position in leader.telemetry.position():
         home_lat = position.latitude_deg
         home_lon = position.longitude_deg
-        print(f"Original Location: latitude {home_lat}, longitude {home_lon}\n")
+        print(f"Original Location of Leader: latitude {home_lat:.6f},\tlongitude {home_lon:.6f}\n")
         break
 
     # Calculate the offset
@@ -49,39 +58,45 @@ async def run():
     mission_plan = MissionPlan(mission_items)
 
     # Upload the Mission
-    await drone.mission.upload_mission(mission_plan)
-    print("Mission Uploaded!")
+    await leader.mission.upload_mission(mission_plan)
+    print("Leader Mission Uploaded!")
 
-    # Arm the Drone
-    await drone.action.arm()
-    print("Drone Armed!")
+    # Arm the Leader Drone
+    await leader.action.arm()
+    print("Leader Armed!")
 
     # Start the Mission
-    await drone.mission.start_mission()
-    print("Mission Started!\n")
+    await leader.mission.start_mission()
+    print("Leader Mission Started!\n")
 
-    asyncio.create_task(log_data(drone))
+    asyncio.create_task(log_data(leader, "Leader"))
 
     # Wait the Mission Complete & Check the Success or Failure
     try:
-        async for mission_progress in drone.mission.mission_progress():
-            print(f"\nMission progress: {mission_progress.current}/{mission_progress.total}\n")
+        async for mission_progress in leader.mission.mission_progress():
+            print(f"\nLeader Mission progress: {mission_progress.current}/{mission_progress.total}\n")
             if mission_progress.current == mission_progress.total:
-                print("\nMission Complete!")
+                print("\nLeader Mission Complete!")
                 break
             await asyncio.sleep(1)
 
-        if await drone.mission.is_mission_finished():
-            print("Mission finished successfully.")
+            async for position in leader.telemetry.position():
+                await follower.action.goto_location(position.latitude_deg, position.longitude_deg, position.relative_altitude_m, 0)
+                break
+
+        if await leader.mission.is_mission_finished():
+            print("Leader Mission finished successfully.")
         else:
-            print("Mission failed to complete successfully...")
+            print("Leader Mission failed to complete successfully...")
 
     except Exception as e:
         print(f"An error occured during the mission: {e}")
         return
 
     # Land
-    print("\nLanding...\n")
-    await drone.action.land()
+    print("\nLanding Leader...\n")
+    await leader.action.land()
+    print("\nLanding Follower...\n")
+    await follower.action.land()
 
 asyncio.run(run())
