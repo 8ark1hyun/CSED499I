@@ -27,7 +27,7 @@ def move_to_position(drone, latitude, longitude, altitude):
     print(f"Follower moving to latitude: {latitude}, longitude: {longitude}, altitude: {altitude}")
 
 # Leader-follower function to send leader's position to the follower
-def follow_leader(drone_leader, drone_follower):
+def follow_leader(drone_leader, drone_follower, follow_distance=10):
     while True:
         # Receive the leader drone's position
         msg = drone_leader.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
@@ -37,9 +37,13 @@ def follow_leader(drone_leader, drone_follower):
             altitude = msg.relative_alt / 1e3
             print(f"Leader Position: {latitude}, {longitude}, {altitude}")
 
-            # Command the follower drone to move to the leader's position
-            move_to_position(drone_follower, latitude, longitude, altitude)
-            print("Follower moving to leader position.")
+            # Command the follower drone to move to a position behind the leader
+            # Adjust latitude/longitude slightly to maintain a following distance
+            follow_latitude = latitude - (follow_distance / 111320)  # Adjust latitude
+            follow_longitude = longitude
+
+            move_to_position(drone_follower, follow_latitude, follow_longitude, altitude)
+            print("Follower moving to leader position with offset.")
         time.sleep(1)  # Periodically update position
 
 # Connect to the leader and follower drones
