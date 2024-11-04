@@ -47,13 +47,22 @@ async def main():
             print("Follower drone connected!")
             break
 
-    # Arm both drones and wait until both are armed
+    # Arm both drones
     print("Arming leader and follower drones...")
     await leader_drone.action.arm()
     await follower_drone.action.arm()
 
+    # Verify arm status
+    print("Verifying arm status...")
+    async for is_armed_leader in leader_drone.telemetry.armed():
+        print(f"Leader drone armed status: {is_armed_leader}")
+        break
+
+    async for is_armed_follower in follower_drone.telemetry.armed():
+        print(f"Follower drone armed status: {is_armed_follower}")
+        break
+
     # Wait until both drones are armed
-    print("Waiting for both drones to be armed...")
     armed_leader = False
     armed_follower = False
 
