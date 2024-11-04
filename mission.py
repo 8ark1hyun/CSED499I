@@ -115,4 +115,4 @@ async def leader_follower_run():
     print("\nLanding Follower...\n")
     await follower.action.land()
 
-asyncio.run(run())
+asyncio.run(leader_follower_run())
