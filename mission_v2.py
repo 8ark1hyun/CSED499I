@@ -47,13 +47,26 @@ async def main():
             print("Follower drone connected!")
             break
 
-    # Arm both drones
+    # Arm both drones and wait until both are armed
     print("Arming leader and follower drones...")
     await leader_drone.action.arm()
     await follower_drone.action.arm()
 
-    # Start the leader-follower algorithm
-    print("Starting leader-follower algorithm...")
+    # Wait until both drones are armed
+    print("Waiting for both drones to be armed...")
+    armed_leader = False
+    armed_follower = False
+
+    while not (armed_leader and armed_follower):
+        async for is_armed_leader in leader_drone.telemetry.armed():
+            armed_leader = is_armed_leader
+            break
+        async for is_armed_follower in follower_drone.telemetry.armed():
+            armed_follower = is_armed_follower
+            break
+        await asyncio.sleep(0.5)
+
+    print("Both drones are armed. Starting the leader-follower algorithm...")
     await follow_leader(leader_drone, follower_drone)
 
 # Run the main function
