@@ -108,8 +108,14 @@ def follow_leader(drone_leader, drone_follower):
 leader_connection = 'udp:127.0.0.1:14550'  # Connection address for leader drone
 follower_connection = 'udp:127.0.0.1:14551'  # Connection address for follower drone
 
-drone_leader = connect_drone(leader_connection)
-drone_follower = connect_drone(follower_connection)
+# Connect to leader and follower drones
+drone_leader = mavutil.mavlink_connection(leader_connection)
+drone_follower = mavutil.mavlink_connection(follower_connection)
+
+drone_leader.wait_heartbeat()
+print("Connected to leader drone")
+drone_follower.wait_heartbeat()
+print("Connected to follower drone")
 
 # Set both the leader and follower drones to ARM state
 arm_drone(drone_leader)
