@@ -66,7 +66,28 @@ async def main():
             break
         await asyncio.sleep(0.5)
 
-    print("Both drones are armed. Starting the leader-follower algorithm...")
+    print("Both drones are armed. Taking off the leader drone to 10 meters altitude...")
+
+    # Leader drone takes off to 10 meters
+    await leader_drone.action.takeoff()
+    await asyncio.sleep(5)  # Wait for the drone to reach the altitude
+
+    # Hover at 10 meters altitude for a few seconds
+    await asyncio.sleep(5)
+    print("Leader drone reached 10 meters altitude. Preparing to land...")
+
+    # Land the leader drone
+    await leader_drone.action.land()
+    print("Leader drone is landing...")
+
+    # Wait until the leader drone has landed
+    async for in_air in leader_drone.telemetry.in_air():
+        if not in_air:
+            print("Leader drone has landed.")
+            break
+
+    # Start the leader-follower algorithm
+    print("Starting leader-follower algorithm...")
     await follow_leader(leader_drone, follower_drone)
 
 # Run the main function
