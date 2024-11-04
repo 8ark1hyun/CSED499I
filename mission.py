@@ -2,13 +2,14 @@ import asyncio
 from mavsdk import System
 from mavsdk.mission import MissionItem, MissionPlan
 import math
+import time
 
 async def log_data(drone, label):
     # Collect and Print the Log in real-time
     async for position in drone.telemetry.position():
         print(f"[{label}] Current Location: latitude {position.latitude_deg:.6f},\tlongitude {position.longitude_deg:.6f},\taltitude: {position.relative_altitude_m:.6f}")
 
-async def run():
+async def leader_follower_run():
     # Initialize and Connect the Drone Systems
     leader = System()
     follower = System()
@@ -71,6 +72,14 @@ async def run():
 
     asyncio.create_task(log_data(leader, "Leader"))
 
+    # Arm the Follower Drone
+    await follower.action.arm()
+    print("Follower Armed!")
+
+    #
+    last_follower_update = time.time()
+    follow_interval = 1
+
     # Wait the Mission Complete & Check the Success or Failure
     try:
         async for mission_progress in leader.mission.mission_progress():
@@ -80,9 +89,16 @@ async def run():
                 break
             await asyncio.sleep(1)
 
-            async for position in leader.telemetry.position():
-                await follower.action.goto_location(position.latitude_deg, position.longitude_deg, position.relative_altitude_m, 0)
-                break
+            if time.time() - last_follower_update > followe_interval:
+                async for position in leader.telemetry.position():
+                    await follower.action.goto_location(
+                        position.latitude_deg,
+                        position.longitude_deg,
+                        position.relative_altitude_m,
+                        0
+                    )
+                    last_follower_update = time.time()
+                    break
 
         if await leader.mission.is_mission_finished():
             print("Leader Mission finished successfully.")
