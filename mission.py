@@ -6,7 +6,7 @@ import math
 async def log_data(drone, label):
     # Collect and Print the Log in real-time
     async for position in drone.telemetry.position():
-        print(f"[{label}] Current Location: latitude {position.latitude_deg},\tlongitude {position.longitude_deg},\taltitude: {position.relative_altitude_m}")
+        print(f"[{label}] Current Location: latitude {position.latitude_deg:.6f},\tlongitude {position.longitude_deg:.6f},\taltitude: {position.relative_altitude_m:.6f}")
 
 async def run():
     # Initialize and Connect the Drone Systems
